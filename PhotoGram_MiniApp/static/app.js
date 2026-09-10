@@ -27,7 +27,150 @@ async function like(id,b){let d=await api(`/api/posts/${id}/like`,{method:"POST"
 function modal(html){document.querySelector("#sheet").innerHTML=html;document.querySelector("#modal").classList.remove("hidden")}
 function closeModal(){stopChatRefresh();document.querySelector("#modal").classList.add("hidden");setBack(null)}
 
-function openUpload(){setBack(closeModal);modal(`<h2>📸 Yangi post</h2><form id="uploadForm"><input type="file" name="image" accept="image/*" required><textarea name="caption" placeholder="Rasm haqida yozing..."></textarea><button class="primary">Joylash</button> <button type="button" onclick="closeModal()">Bekor</button></form>`);document.querySelector("#uploadForm").onsubmit=async e=>{e.preventDefault();try{let r=await fetch("/api/posts",{method:"POST",body:new FormData(e.target)});let d=await r.json();if(!r.ok)throw Error(d.error);closeModal();loadFeed()}catch(x){alert(x.message)}}}
+function openUpload(){
+    setBack(closeModal);
+
+    modal(
+        <h2>📸 Yangi post</h2>
+
+        <form id="uploadForm">
+
+            <input
+                type="file"
+                id="imageInput"
+                name="image"
+                accept="image/jpeg,image/png,image/webp"
+                required
+            >
+
+            <div id="uploadPreview" style="margin:10px 0;"></div>
+
+            <textarea
+                name="caption"
+
+ maxlength="1000"
+                placeholder="Rasm haqida yozing..."
+            ></textarea>
+
+            <button class="primary" id="uploadButton">
+                Joylash
+            </button>
+
+            <button type="button" onclick="closeModal()">
+                Bekor
+            </button>
+ 
+<div id="uploadStatus" style="margin-top:10px;text-align:center;"></div>
+
+        </form>
+    );
+
+    const form = document.querySelector("#uploadForm");
+    const input = document.querySelector("#imageInput");
+    const preview = document.querySelector("#uploadPreview");
+    const button = document.querySelector("#uploadButton");
+    const status = document.querySelector("#uploadStatus");
+
+ input.onchange = () => {
+        const file = input.files[0];
+
+        if(!file) return;
+
+        if(!file.type.startsWith("image/")){
+            alert("Faqat rasm tanlang");
+            input.value = "";
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+
+        preview.innerHTML = 
+            <img
+                src="${url}"
+                style="
+
+  max-width:100%;
+                    max-height:300px;
+                    border-radius:12px;
+                    object-fit:contain;
+                "
+            >
+            <div style="font-size:12px;color:#888;margin-top:5px">
+                ${(file.size / 1024 / 1024).toFixed(2)} MB
+            </div>
+        ;
+    };
+
+    form.onsubmit = async e => {
+        e.preventDefault();
+
+        const file = input.files[0];
+
+        if(!file){
+            alert("Rasm tanlang");
+            return;
+        }
+
+     try{
+            button.disabled = true;
+            button.textContent = "⏳ Tayyorlanmoqda...";
+            status.textContent = "Rasm siqilmoqda...";
+
+            // Rasmni telefonda siqish
+            const compressed = await compressImage(file);
+
+            const fd = new FormData();
+
+            fd.append(
+                "image",
+                compressed,
+                "photogram.jpg"
+            );
+
+            fd.append(
+                "caption",
+                form.querySelector('[name="caption"]').value
+            );
+
+      status.textContent = "📤 Yuklanmoqda...";
+            button.textContent = "⏳ Yuklanmoqda...";
+
+            const r = await fetch("/api/posts", {
+                method: "POST",
+                body: fd
+            });
+
+            const d = await r.json();
+
+            if(!r.ok){
+                throw new Error(
+                    d.error || "Rasm yuklanmadi"
+                );
+            }
+
+            status.textContent = "✅ Joylandi!";
+
+            closeModal();
+
+            await loadFeed();
+
+        }catch(x){
+
+            console.error("UPLOAD ERROR:", x);
+
+            status.textContent = "";
+
+            alert(
+                x.message ||
+                "Rasm yuklashda xatolik yuz berdi"
+            );
+
+            button.disabled = false;
+            button.textContent = "Joylash";
+        }
+    };
+}
+ 
 
 async function openComments(id){
  setBack(closeModal);let d=await api(`/api/posts/${id}/comments`);
@@ -70,3 +213,86 @@ function renderChat(d,keep=false){
 }
 
 (async()=>{try{await login();let a=await api("/api/admin/announcement");if(a.text)document.querySelector("#announcement").textContent="📢 "+a.text;loadFeed()}catch(e){alert(e.message)}})();
+
+async function compressImage(file){
+
+    return new Promise((resolve,reject)=>{
+
+        const reader = new FileReader();
+
+        reader.onload = e => {
+
+            const img = new Image();
+
+            img.onload = () => {
+
+                const MAX_WIDTH = 2000;
+                const MAX_HEIGHT = 2000;
+
+                let width = img.width;
+                let height = img.height;
+
+                if(width > MAX_WIDTH || height > MAX_HEIGHT){
+
+                    const ratio = Math.min(
+                        MAX_WIDTH / width,
+                        MAX_HEIGHT / height
+                    );
+
+             width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+
+                const canvas = document.createElement("canvas");
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+             canvas.toBlob(
+                    blob => {
+
+                        if(!blob){
+                            reject(
+                                new Error(
+                                    "Rasmni siqib bo'lmadi"
+                                )
+                            );
+                            return;
+                        }
+
+                        resolve(blob);
+
+                    },
+                    "image/jpeg",
+                    0.85
+                );
+            };
+
+            img.onerror = () => {
+                reject(
+                    new Error("Rasmni o'qib bo'lmadi")
+                );
+            };
+
+         img.src = e.target.result;
+        };
+
+        reader.onerror = () => {
+            reject(
+                new Error("Rasmni o'qishda xatolik")
+            );
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
