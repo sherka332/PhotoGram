@@ -30,7 +30,7 @@ function closeModal(){stopChatRefresh();document.querySelector("#modal").classLi
 function openUpload(){
     setBack(closeModal);
 
-    modal(
+    modal('
         <h2>📸 Yangi post</h2>
 
         <form id="uploadForm">
@@ -84,7 +84,7 @@ function openUpload(){
 
         const url = URL.createObjectURL(file);
 
-        preview.innerHTML = 
+        preview.innerHTML = '
             <img
                 src="${url}"
                 style="
