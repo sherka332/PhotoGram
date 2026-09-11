@@ -2,6 +2,8 @@ import os, sqlite3, secrets
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, session
 from werkzeug.utils import secure_filename
+from PIL import Image, ImageOps
+
 
 app=Flask(__name__)
 app.secret_key=os.environ.get("SECRET_KEY",secrets.token_hex(32))
@@ -71,7 +73,45 @@ def create_post():
     if not f:return jsonify(error="Rasm tanlang"),400
     ext=os.path.splitext(secure_filename(f.filename))[1].lower()
     if ext not in {".jpg",".jpeg",".png",".webp",".gif"}:return jsonify(error="Faqat rasm fayllar"),400
-    name=secrets.token_hex(12)+ext; f.save(os.path.join(UPLOAD,name))
+    name=secrets.token_hex(12)+ext; name = f"{uuid.uuid4().hex}.jpg"
+output_path = os.path.join(app.config["UPLOAD_FOLDER"], name)
+
+try:
+    f.stream.seek(0)
+    with Image.open(f.stream) as img:
+        img = ImageOps.exif_transpose(img)
+
+        # Juda katta o'lchamni kamaytiradi, kichik rasmni kattalashtirmaydi.
+        max_side = 2560
+        if max(img.size) > max_side:
+            ratio = max_side / max(img.size)
+            new_size = (
+                max(1, int(img.width * ratio)),
+                max(1, int(img.height * ratio))
+            )
+
+    img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+        # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi.
+        if img.mode in ("RGBA", "LA"):
+            bg = Image.new("RGB", img.size, "white")
+            bg.paste(img.convert("RGB"), mask=img.getchannel("A"))
+            img = bg
+        else:
+            img = img.convert("RGB")
+
+   # Yuqori sifatli web optimizatsiya.
+        img.save(
+            output_path,
+            "JPEG",
+            quality=88,
+            optimize=True,
+            progressive=True
+        )
+except Exception:
+    return jsonify({"error": "Rasmni qayta ishlashda xatolik"}), 400
+
+
     c=conn(); c.execute("INSERT INTO posts(user_id,image,caption) VALUES(?,?,?)",(u["id"],"/static/uploads/"+name,request.form.get("caption","").strip())); c.commit(); c.close()
     return jsonify(ok=True)
 
