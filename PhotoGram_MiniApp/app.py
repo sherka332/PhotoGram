@@ -121,7 +121,8 @@ def create_post():
                 optimize=True,
                 progressive=True
             )
-             c = conn()
+             
+            c = conn()
         c.execute(
             "INSERT INTO posts(user_id,image,caption) VALUES(?,?,?)",
             (
