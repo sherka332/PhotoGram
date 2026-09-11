@@ -79,8 +79,7 @@ output_path = os.path.join(app.config["UPLOAD_FOLDER"], name)
 try:
     f.stream.seek(0)
     with Image.open(f.stream) as img:
-        img = 
-    ImageOps.exif_transpose(img)
+        img =  ImageOps.exif_transpose(img)
 
         # Juda katta o'lchamni kamaytiradi, kichik rasmni kattalashtirmaydi.
         max_side = 2560
@@ -91,8 +90,7 @@ try:
                 max(1, int(img.height * ratio))
             )
 
-        img = 
-img.resize(new_size, 
+        img = img.resize(new_size, 
            Image.Resampling.LANCZOS)
 
         # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi.
