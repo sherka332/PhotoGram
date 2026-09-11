@@ -90,14 +90,14 @@ try:
                 max(1, int(img.height * ratio))
             )
 
-    img = img.resize(new_size, Image.Resampling.LANCZOS)
+img = img.resize(new_size, Image.Resampling.LANCZOS)
 
         # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi.
-        if img.mode in ("RGB", "A"):
+if img.mode in ("RGBA", "LA"):
             bg = Image.new("RGB", img.size, "white")
             bg.paste(img.convert("RGB"), mask=img.getchannel("A"))
             img = bg
-        else:
+else:
             img = img.convert("RGB")
 
    # Yuqori sifatli web optimizatsiya.
