@@ -119,7 +119,7 @@ try:
         )
 
 except Exception:
-    return jsonify(
+        return jsonify(
         {"error": "Rasmni qayta ishlashda xatolik"}
     ), 400
 
