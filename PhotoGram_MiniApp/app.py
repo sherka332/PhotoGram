@@ -67,61 +67,79 @@ def feed():
 
 @app.post("/api/posts")
 def create_post():
-    u=user()
-    if not u:return jsonify(error="Login kerak"),401
-    f=request.files.get("image")
-    if not f:return jsonify(error="Rasm tanlang"),400
-    ext=os.path.splitext(secure_filename(f.filename))[1].lower()
-    if ext not in {".jpg",".jpeg",".png",".webp",".gif"}:return jsonify(error="Faqat rasm fayllar"),400
-    name=secrets.token_hex(12)+ext; name = f"{uuid.uuid4().hex}.jpg"
-output_path = os.path.join(app.config["UPLOAD_FOLDER"], name)
+    u = user()
+    if not u:
+        return jsonify(error="Login kerak"), 401
 
-try:
-    f.stream.seek(0)
+    f = request.files.get("image")
+    if not f:
+        return jsonify(error="Rasm tanlang"), 400
 
-    with Image.open(f.stream) as img:
-        img = ImageOps.exif_transpose(img)
+    ext = os.path.splitext(secure_filename(f.filename))[1].lower()
+     if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return jsonify(error="Faqat rasm fayllar"), 400
 
-        # Juda katta rasmni kichraytiradi
-        max_side = 2560
+    name = f"{secrets.token_hex(12)}.jpg"
+    output_path = os.path.join(UPLOAD, name)
 
-    if max(img.size) > max_side:
-            ratio = max_side / max(img.size)
+    try:
+        f.stream.seek(0)
 
-            new_size = (
-                max(1, int(img.width * ratio)),
-                max(1, int(img.height * ratio))
+        with Image.open(f.stream) as img:
+            img = ImageOps.exif_transpose(img)
+              # Juda katta rasmni kichraytiradi
+            max_side = 2560
+
+            if max(img.size) > max_side:
+                ratio = max_side / max(img.size)
+
+                new_size = (
+                    max(1, int(img.width * ratio)),
+                    max(1, int(img.height * ratio))
+                )
+
+                img = img.resize(
+                    new_size,
+                    Image.Resampling.LANCZOS
+                )
+                # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi
+            if img.mode in ("RGBA", "LA"):
+                bg = Image.new("RGB", img.size, "white")
+                bg.paste(
+                    img.convert("RGB"),
+                    mask=img.getchannel("A")
+                )
+                img = bg
+            else:
+                img = img.convert("RGB")
+
+            # Yuqori sifatli JPEG
+            img.save(
+                output_path,
+                "JPEG",
+                quality=88,
+                optimize=True,
+                progressive=True
             )
-
-            img = img.resize(
-                new_size,
-                Image.Resampling.LANCZOS
+             c = conn()
+        c.execute(
+            "INSERT INTO posts(user_id,image,caption) VALUES(?,?,?)",
+            (
+                u["id"],
+                "/static/uploads/" + name,
+                request.form.get("caption", "").strip()
             )
-
-        # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi
-    if img.mode in ("RGBA", "LA"):
-            bg = Image.new("RGB", img.size, "white")
-            bg.paste(
-                img.convert("RGB"),
-                mask=img.getchannel("A")
-            )
-            img = bg
-    else:
-            img = img.convert("RGB")
-
-        # Yuqori sifatli JPEG
-        img.save(
-            output_path,
-            "JPEG",
-            quality=88,
-            optimize=True,
-            progressive=True
         )
+        c.commit()
+        c.close()
 
-except Exception:
-    return jsonify(
-        {"error": "Rasmni qayta ishlashda xatolik"}
-    ), 400
+        return jsonify(ok=True)
+
+    except Exception:
+        return jsonify(
+            {"error": "Rasmni qayta ishlashda xatolik"}
+        ), 400
+
 
 
     c=conn(); c.execute("INSERT INTO posts(user_id,image,caption) VALUES(?,?,?)",(u["id"],"/static/uploads/"+name,request.form.get("caption","").strip())); c.commit(); c.close()
