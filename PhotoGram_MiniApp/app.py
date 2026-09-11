@@ -106,7 +106,11 @@ def users():
 def profile(uid):
     me=user(); mid=me["id"] if me else 0; c=conn(); u=c.execute("SELECT id,username,name,bio,avatar FROM users WHERE id=?",(uid,)).fetchone()
     if not u:c.close(); return jsonify(error="Topilmadi"),404
-    p=c.execute("SELECT * FROM posts WHERE user_id=? AND hidden=0 ORDER BY id DESC",(uid,)).fetchall()
+    p=c.execute("""SELECT p.*,
+        (SELECT COUNT(*) FROM likes WHERE post_id=p.id) likes,
+        (SELECT COUNT(*) FROM comments WHERE post_id=p.id) comments,
+        EXISTS(SELECT 1 FROM saves WHERE post_id=p.id AND user_id=?) saved
+        FROM posts p WHERE p.user_id=? AND p.hidden=0 ORDER BY p.id DESC""",(mid,uid)).fetchall()
     fo=c.execute("SELECT COUNT(*) n FROM follows WHERE following=?",(uid,)).fetchone()["n"]; fi=c.execute("SELECT COUNT(*) n FROM follows WHERE follower=?",(uid,)).fetchone()["n"]
     isf=bool(c.execute("SELECT 1 FROM follows WHERE follower=? AND following=?",(mid,uid)).fetchone()) if mid else False
     c.close(); return jsonify(user=dict(u),posts=[dict(x) for x in p],followers=fo,following=fi,is_following=isf)
