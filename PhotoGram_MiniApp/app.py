@@ -93,7 +93,7 @@ try:
     img = img.resize(new_size, Image.Resampling.LANCZOS)
 
         # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi.
-        if img.mode in ("RGBA", "LA"):
+        if img.mode in ("RGB", "A"):
             bg = Image.new("RGB", img.size, "white")
             bg.paste(img.convert("RGB"), mask=img.getchannel("A"))
             img = bg
