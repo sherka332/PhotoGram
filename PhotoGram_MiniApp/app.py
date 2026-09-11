@@ -85,7 +85,7 @@ try:
         # Juda katta rasmni kichraytiradi
         max_side = 2560
 
-        if max(img.size) > max_side:
+    if max(img.size) > max_side:
             ratio = max_side / max(img.size)
 
             new_size = (
@@ -99,14 +99,14 @@ try:
             )
 
         # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi
-        if img.mode in ("RGBA", "LA"):
+    if img.mode in ("RGBA", "LA"):
             bg = Image.new("RGB", img.size, "white")
             bg.paste(
                 img.convert("RGB"),
                 mask=img.getchannel("A")
             )
             img = bg
-        else:
+    else:
             img = img.convert("RGB")
 
         # Yuqori sifatli JPEG
@@ -119,7 +119,7 @@ try:
         )
 
 except Exception:
-        return jsonify(
+    return jsonify(
         {"error": "Rasmni qayta ishlashda xatolik"}
     ), 400
 
