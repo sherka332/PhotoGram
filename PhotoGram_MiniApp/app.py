@@ -78,30 +78,38 @@ output_path = os.path.join(app.config["UPLOAD_FOLDER"], name)
 
 try:
     f.stream.seek(0)
-    with Image.open(f.stream) as img:
-        img =  ImageOps.exif_transpose(img)
 
-        # Juda katta o'lchamni kamaytiradi, kichik rasmni kattalashtirmaydi.
+    with Image.open(f.stream) as img:
+        img = ImageOps.exif_transpose(img)
+
+        # Juda katta rasmni kichraytiradi
         max_side = 2560
+
         if max(img.size) > max_side:
             ratio = max_side / max(img.size)
+
             new_size = (
                 max(1, int(img.width * ratio)),
                 max(1, int(img.height * ratio))
             )
 
-        img = img.resize(new_size, 
-           Image.Resampling.LANCZOS)
+            img = img.resize(
+                new_size,
+                Image.Resampling.LANCZOS
+            )
 
-        # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi.
-if img.mode in ("RGBA", "LA"):
+        # Shaffof PNG/WebP rasmlarni oq fon bilan JPEGga o'tkazadi
+        if img.mode in ("RGBA", "LA"):
             bg = Image.new("RGB", img.size, "white")
-            bg.paste(img.convert("RGB"), mask=img.getchannel("A"))
+            bg.paste(
+                img.convert("RGB"),
+                mask=img.getchannel("A")
+            )
             img = bg
-else:
+        else:
             img = img.convert("RGB")
 
-   # Yuqori sifatli web optimizatsiya.
+        # Yuqori sifatli JPEG
         img.save(
             output_path,
             "JPEG",
@@ -109,8 +117,11 @@ else:
             optimize=True,
             progressive=True
         )
+
 except Exception:
-    return jsonify({"error": "Rasmni qayta ishlashda xatolik"}), 400
+    return jsonify(
+        {"error": "Rasmni qayta ishlashda xatolik"}
+    ), 400
 
 
     c=conn(); c.execute("INSERT INTO posts(user_id,image,caption) VALUES(?,?,?)",(u["id"],"/static/uploads/"+name,request.form.get("caption","").strip())); c.commit(); c.close()
