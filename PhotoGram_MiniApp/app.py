@@ -3,6 +3,9 @@ from functools import wraps
 from flask import Flask, request, jsonify, render_template, session
 from werkzeug.utils import secure_filename
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
+
+register_heif_opener()
 
 
 app=Flask(__name__)
@@ -76,7 +79,7 @@ def create_post():
         return jsonify(error="Rasm tanlang"), 400
 
     ext = os.path.splitext(secure_filename(f.filename))[1].lower()
-    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", "heif"}:
         return jsonify(error="Faqat rasm fayllar"), 400
 
     name = f"{secrets.token_hex(12)}.jpg"
