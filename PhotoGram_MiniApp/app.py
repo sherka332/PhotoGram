@@ -76,7 +76,7 @@ def create_post():
         return jsonify(error="Rasm tanlang"), 400
 
     ext = os.path.splitext(secure_filename(f.filename))[1].lower()
-     if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
         return jsonify(error="Faqat rasm fayllar"), 400
 
     name = f"{secrets.token_hex(12)}.jpg"
